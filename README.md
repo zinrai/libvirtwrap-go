@@ -9,6 +9,8 @@ libvirtwrap-go is a Go library that wraps libvirt-related commands such as virsh
 - Set memory size for a VM
 - Resize and expand VM disks
 - Get a list of all defined VMs
+- Get disk paths for a specific VM
+- Verify if a disk belongs to a specific VM
 
 ## Installation
 
