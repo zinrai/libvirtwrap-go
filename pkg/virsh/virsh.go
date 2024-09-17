@@ -1,10 +1,53 @@
 package virsh
 
 import (
-	"fmt"
-	"os/exec"
-	"strings"
+    "fmt"
+    "os/exec"
+    "strings"
+    "github.com/zinrai/libvirtwrap-go/internal/xmlutil"
 )
+
+type DomainDisk struct {
+    Device string `xml:"device,attr"`
+    Source struct {
+        File string `xml:"file,attr"`
+    } `xml:"source"`
+    Target struct {
+        Dev string `xml:"dev,attr"`
+    } `xml:"target"`
+}
+
+type Domain struct {
+    Devices struct {
+        Disks []DomainDisk `xml:"disk"`
+    } `xml:"devices"`
+}
+
+func GetVMDiskPaths(vmName string) ([]string, error) {
+    cmd := exec.Command("sudo", "virsh", "dumpxml", vmName)
+    output, err := cmd.Output()
+    if err != nil {
+        return nil, fmt.Errorf("failed to execute virsh dumpxml: %v", err)
+    }
+
+    var domain Domain
+    if err := xmlutil.ParseXML(output, &domain); err != nil {
+        return nil, fmt.Errorf("failed to parse XML: %v", err)
+    }
+
+    var diskPaths []string
+    for _, disk := range domain.Devices.Disks {
+        if disk.Device == "disk" {
+            diskPaths = append(diskPaths, disk.Source.File)
+        }
+    }
+
+    if len(diskPaths) == 0 {
+        return nil, fmt.Errorf("no disks found for VM '%s'", vmName)
+    }
+
+    return diskPaths, nil
+}
 
 func IsVMRunning(name string) (bool, error) {
 	cmd := exec.Command("sudo", "virsh", "list", "--name", "--state-running")
